@@ -19,11 +19,6 @@ namespace Baibaomen.HttpHijacker
         /// </summary>
         ConcurrentDictionary<string, ConcurrentDictionary<string, string>> clientCookies = new ConcurrentDictionary<string, ConcurrentDictionary<string, string>>();
 
-        /// <summary>
-        /// 本地网卡绑定的IP列表。
-        /// </summary>
-        List<string> localAddresses = new List<string>();
-
         public FormHijacker()
         {
             InitializeComponent();
@@ -47,17 +42,6 @@ namespace Baibaomen.HttpHijacker
 
                 foreach (var selectedDevice in allDevices)
                 {
-                    localAddresses.AddRange(selectedDevice.Addresses.Select(x =>
-                    {
-                        if (x.Address.Family == SocketAddressFamily.Internet)
-                            return ((IpV4SocketAddress)x.Address).Address.ToString();
-
-                        if(x.Address.Family == SocketAddressFamily.Internet6)
-                            return ((IpV6SocketAddress)x.Address).Address.ToString();
-
-                        return null;
-                    }).Where(x=>x != null));
-
                     Task.Run(delegate
                     {
                         PacketCommunicator communicator =
@@ -86,10 +70,6 @@ namespace Baibaomen.HttpHijacker
             try
             {
                 var sourceIP = packet.Ethernet.IpV4.Source.ToString();
-                
-                //排除自己的HTTP请求。
-                if (localAddresses.Contains(sourceIP))
-                    return;
 
                 var http = packet?.Ethernet?.IpV4?.Tcp?.Http;
                 if (http == null || http.Header == null) return;
