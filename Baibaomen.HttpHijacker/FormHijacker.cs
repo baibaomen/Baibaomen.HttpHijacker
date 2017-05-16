@@ -3,14 +3,10 @@ using PcapDotNet.Packets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -51,6 +47,17 @@ namespace Baibaomen.HttpHijacker
 
                 foreach (var selectedDevice in allDevices)
                 {
+                    localAddresses.AddRange(selectedDevice.Addresses.Select(x =>
+                    {
+                        if (x.Address.Family == SocketAddressFamily.Internet)
+                            return ((IpV4SocketAddress)x.Address).Address.ToString();
+
+                        if(x.Address.Family == SocketAddressFamily.Internet6)
+                            return ((IpV6SocketAddress)x.Address).Address.ToString();
+
+                        return null;
+                    }).Where(x=>x != null));
+
                     Task.Run(delegate
                     {
                         PacketCommunicator communicator =
@@ -80,7 +87,8 @@ namespace Baibaomen.HttpHijacker
             {
                 var sourceIP = packet.Ethernet.IpV4.Source.ToString();
                 
-                if (sourceIP == "192.168.1.103")
+                //排除自己的HTTP请求。
+                if (localAddresses.Contains(sourceIP))
                     return;
 
                 var http = packet?.Ethernet?.IpV4?.Tcp?.Http;
